@@ -1,9 +1,5 @@
 package protocol3.backend;
 
-import java.net.*;
-import java.nio.charset.Charset;
-import java.io.*;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
@@ -24,8 +20,8 @@ public class Utilities {
 		long hoursRem = (long) (seconds % 3600);
 		long minutes = hoursRem / 60;
 
-		String hoursString = "";
-		String minutesString = "";
+		String hoursString;
+		String minutesString;
 
 		if (hours == 1) {
 			hoursString = hours + " hour";
@@ -101,7 +97,10 @@ public class Utilities {
 				TimeUnit.SECONDS.sleep(1);
 				}
 			} catch (Exception e) {
+				System.out.println("WARN exception in restart timer thread: " + Thread.currentThread().getName());
+				System.out.println("Attempting restart right away..");
 			}
+
 			Bukkit.getServer().spigot().broadcast(new TextComponent("§6Server is restarting."));
 			Bukkit.getScheduler().runTask(Main.instance, new Runnable() 
 			{
@@ -112,7 +111,7 @@ public class Utilities {
 					  }
 				  }
 	        });
-			try { TimeUnit.SECONDS.sleep(2); } catch(Exception e) { }
+			try { TimeUnit.SECONDS.sleep(2); } catch(Exception ignored) { }
 			Bukkit.shutdown();
 		}).start();
 	}
@@ -134,12 +133,9 @@ public class Utilities {
 	                return false;
 	            }
 	        }
-	        if (ip.endsWith(".") ) {
-	            return false;
-	        }
+			return !ip.endsWith(".");
 
-	        return true;
-	    } catch (NumberFormatException nfe) {
+		} catch (NumberFormatException nfe) {
 	        return false;
 	    }
 	}
@@ -166,7 +162,6 @@ public class Utilities {
 	}
 
 	public static Location getRandomSpawn(World thisWorld, Location newSpawnLocation) {
-
 		boolean valid_spawn_location = false;
 
 		// get random x, z coords and check them top-down from y256 for validity
@@ -189,22 +184,20 @@ public class Utilities {
 
 				y--;
 
-				if (!headBlock.getType().equals(Material.AIR) || !legsBlock.getType().equals(Material.AIR)) {
-					continue;
+				if (headBlock.getType().equals(Material.AIR) && legsBlock.getType().equals(Material.AIR)) {
+					if (!floorBlock.getType().equals(Material.AIR)) {
 
-				} else if (!floorBlock.getType().equals(Material.AIR)) {
+						// potential valid spawn, check for unwanted spawn surfaces
+						if (!BannedSpawnFloors.contains(floorBlock.getType())) {
+							valid_spawn_location = true;
 
-					// potential valid spawn, check for unwanted spawn surfaces
-					if (!BannedSpawnFloors.contains(floorBlock.getType())) {
-						valid_spawn_location = true;
-
-						newSpawnLocation.setWorld(thisWorld);
-						newSpawnLocation.setX(tryLocation_x);
-						newSpawnLocation.setY(y);
-						newSpawnLocation.setZ(tryLocation_z);
-
+							newSpawnLocation.setWorld(thisWorld);
+							newSpawnLocation.setX(tryLocation_x);
+							newSpawnLocation.setY(y);
+							newSpawnLocation.setZ(tryLocation_z);
+						}
+						break; // <- Do NOT check underground if first floorBlock is unwanted
 					}
-					break;
 				}
 			}
 		}
